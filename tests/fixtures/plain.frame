@@ -1,5 +1,4 @@
 <script>
-  import { state } from "anyframe";
   let count = 0;
   const clicks = state(0);
   function inc() {
@@ -7,6 +6,6 @@
     clicks.set(clicks.get() + 1);
   }
 </script>
-<button type="button" on:click={inc}>Add</button>
+<button type="button" @click={inc}>Add</button>
 <p id="count">{count}</p>
 <p id="clicks">{clicks}</p>

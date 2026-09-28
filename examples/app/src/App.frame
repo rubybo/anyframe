@@ -1,5 +1,4 @@
 <script>
-  import { state, derived } from "anyframe";
   import Item from "./Item.frame";
 
   type Task = { id: number; title: string; done: boolean };
@@ -73,7 +72,7 @@
     <p class="count">{openCount} open</p>
   </header>
 
-  <form class="add" method="post" action="#tasks" on:submit|preventDefault={addTask}>
+  <form class="add" method="post" action="#tasks" @submit.prevent={addTask}>
     <div class="field">
       <label for="task-title">New task</label>
       <div class="row">
@@ -86,7 +85,7 @@
           enterkeyhint="done"
           placeholder="What needs doing?"
           value={title}
-          on:input={onTitle}
+          @input={onTitle}
         />
         <button type="submit">Add task</button>
       </div>
@@ -96,26 +95,26 @@
   <fieldset class="filters">
     <legend>Show</legend>
     <label class="choice" for="show-all">
-      <input id="show-all" type="radio" name="show" value="all" checked={filter === "all"} on:change={() => setFilter("all")} />
+      <input id="show-all" type="radio" name="show" value="all" checked={filter === "all"} @change={() => setFilter("all")} />
       All
     </label>
     <label class="choice" for="show-open">
-      <input id="show-open" type="radio" name="show" value="open" checked={filter === "open"} on:change={() => setFilter("open")} />
+      <input id="show-open" type="radio" name="show" value="open" checked={filter === "open"} @change={() => setFilter("open")} />
       Open
     </label>
     <label class="choice" for="show-done">
-      <input id="show-done" type="radio" name="show" value="done" checked={filter === "done"} on:change={() => setFilter("done")} />
+      <input id="show-done" type="radio" name="show" value="done" checked={filter === "done"} @change={() => setFilter("done")} />
       Done
     </label>
   </fieldset>
 
   <p class="sr" aria-live="polite">{status}</p>
 
-  {#if visible.length === 0}
+  {if visible.length === 0}
     <p class="empty" aria-hidden="true">{status}</p>
-  {:else}
+  {else}
     <ul>
-      {#each visible as task (task.id)}
+      {each visible as task (task.id)}
         <Item task={task} ontoggle={() => toggle(task.id)} />
       {/each}
     </ul>

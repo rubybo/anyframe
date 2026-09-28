@@ -1,5 +1,4 @@
 <script>
-  import { state } from "anyframe";
   const items = state([
     { id: 1, label: "a" },
     { id: 2, label: "b" },
@@ -12,9 +11,9 @@
   }
 </script>
 <ul>
-  {#each items as item (item.id)}
+  {each items as item (item.id)}
     <li data-id={item.id}>{item.label}</li>
   {/each}
 </ul>
-<button type="button" on:click={dropFirst}>Drop</button>
-<button type="button" on:click={rename}>Rename</button>
+<button type="button" @click={dropFirst}>Drop</button>
+<button type="button" @click={rename}>Rename</button>

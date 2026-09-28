@@ -1,13 +1,12 @@
 <script>
-  import { state } from "anyframe";
   const show = state(true);
   function hide() { show.set(false); }
   function appear() { show.set(true); }
 </script>
-{#if show}
+{if show}
   <p class="yes">yes</p>
-{:else}
+{else}
   <p class="no">no</p>
 {/if}
-<button type="button" on:click={hide}>Hide</button>
-<button type="button" on:click={appear}>Show</button>
+<button type="button" @click={hide}>Hide</button>
+<button type="button" @click={appear}>Show</button>

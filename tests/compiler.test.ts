@@ -80,12 +80,20 @@ describe("compiler fixtures", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(host.textContent).toContain("sent");
     const code = await compile(
-      `<form on:submit|preventDefault={save}></form>\n<script>\nfunction save() {}\n</script>\n`,
+      `<form @submit.prevent={save}></form>\n<script>\nfunction save() {}\n</script>\n`,
       "Event.frame",
     );
     expect(code).toContain("preventDefault");
     expect(code).toContain("__af.listen");
     expect(code).toContain("__af.read(save)");
+    expect(code).toContain("import { __af, state, derived, effect, read } from \"anyframe\";");
+    const legacy = await compile(
+      `<form on:submit|preventDefault={save}></form>\n<script>\nimport { state } from "anyframe";\nconst ready = state(false);\nfunction save() { ready.set(true); }\n</script>\n`,
+      "Legacy.frame",
+    );
+    expect(legacy).toContain("preventDefault");
+    expect(legacy).not.toContain("import { __af, state");
+    expect(legacy).toContain("import { __af, derived, effect, read } from \"anyframe\";");
   });
 
   it("passes reactive props to child components", () => {
@@ -130,6 +138,16 @@ describe("compiler fixtures", () => {
     expect(host.querySelector("#count")?.textContent).toBe("0");
   });
 
+  it("compiles if, else if, and each", async () => {
+    const code = await compile(
+      `{if n === 1}one{else if n === 2}two{else}more{/if}\n{each items as item (item.id)}<span>{item.id}</span>{/each}\n<script>\nconst n = state(1);\nconst items = state([]);\n</script>\n`,
+      "Blocks.frame",
+    );
+    expect(code).toContain("__af.branch");
+    expect(code).toContain("__af.read(n) === 2");
+    expect(code).toContain("__af.repeat");
+  });
+
   it("reports parser errors with line and column", async () => {
     const source = "<div>\n  <span>\n</div>\n";
     await expect(compile(source, "Bad.frame")).rejects.toBeInstanceOf(FrameParseError);
@@ -142,7 +160,10 @@ describe("compiler fixtures", () => {
       expect(parseError.column).toBeGreaterThan(0);
       expect(parseError.message).toMatch(/Bad\.frame:3:\d+/);
     }
-    await expect(compile("{#each items as item}\n{/each}\n", "Each.frame")).rejects.toThrow(/Each\.frame:\d+:\d+/);
+    await expect(compile("{each items as item}\n{/each}\n", "Each.frame")).rejects.toThrow(
+      /Each\.frame:\d+:\d+[\s\S]*Expected \{each list as item \(key\)\}/,
+    );
+    await expect(compile("{#if}\n{/if}\n", "If.frame")).rejects.toThrow(/Expected a condition after \{if\}/);
   });
 });
 

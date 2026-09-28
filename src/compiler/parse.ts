@@ -56,7 +56,14 @@ const VOID_TAGS = new Set([
   "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
 ]);
 
-const MODIFIERS = new Set(["preventDefault", "stopPropagation", "stopImmediatePropagation"]);
+const MODIFIER_NAMES: Record<string, string> = {
+  prevent: "preventDefault",
+  preventDefault: "preventDefault",
+  stop: "stopPropagation",
+  stopPropagation: "stopPropagation",
+  stopImmediate: "stopImmediatePropagation",
+  stopImmediatePropagation: "stopImmediatePropagation",
+};
 
 const ENTITIES: Record<string, string> = {
   amp: "&",
@@ -191,7 +198,7 @@ class Parser {
           return children;
         }
         if (kind.type === "else") {
-          if (stop !== "if") this.error("Unexpected {:else}", start);
+          if (stop !== "if") this.error("Unexpected {else}", start);
           this.pendingElse = kind.raw;
           this.pendingElseIndex = start;
           return children;
@@ -209,7 +216,7 @@ class Parser {
       const text = this.readText();
       if (text.value.trim()) children.push(text);
     }
-    if (stop) this.error(`Unclosed {#${stop}}`, this.pos);
+    if (stop) this.error(`Unclosed {${stop}}`, this.pos);
     return children;
   }
 
@@ -217,21 +224,21 @@ class Parser {
   private pendingElseIndex = 0;
 
   private parseIf(test: string, testIndex: number, index: number): TemplateNode {
-    if (!test.trim()) this.error("Expected a condition after {#if}", testIndex);
+    if (!test.trim()) this.error("Expected a condition after {if}", testIndex);
     const thenChildren = this.parseSequence("if");
     let elseNode: TemplateNode | null = null;
     if (this.pendingElse !== null) {
       const raw = this.pendingElse;
       const elseIndex = this.pendingElseIndex;
       this.pendingElse = null;
-      if (raw === ":else") {
+      if (raw === "else") {
         elseNode = { type: "fragment", children: this.parseSequence("if") };
-      } else if (raw.startsWith(":else if")) {
-        const nested = raw.slice(":else if".length).trim();
-        if (!nested) this.error("Expected a condition after {:else if}", elseIndex);
+      } else if (raw.startsWith("else if")) {
+        const nested = raw.slice("else if".length).trim();
+        if (!nested) this.error("Expected a condition after {else if}", elseIndex);
         elseNode = this.parseIf(nested, elseIndex + raw.indexOf(nested), elseIndex);
       } else {
-        this.error("Unexpected {:else}", elseIndex);
+        this.error("Unexpected {else}", elseIndex);
       }
     }
     return {
@@ -247,15 +254,16 @@ class Parser {
   private parseEach(header: string, index: number): TemplateNode {
     const match = header.match(/^([\s\S]+?)\s+as\s+([A-Za-z_$][\w$]*)\s*\(([\s\S]+)\)\s*$/);
     if (!match) {
-      this.error("Expected {#each list as item (key)}", index);
+      this.error("Expected {each list as item (key)}", index);
     }
     const list = match[1].trim();
     const item = match[2];
     const key = match[3].trim();
-    if (!list) this.error("Expected a list in {#each}", index);
-    if (!key) this.error("Expected a key in {#each}", index);
-    const listIndex = index + header.indexOf(list) + "{#each ".length;
-    const keyIndex = index + header.lastIndexOf("(") + 2;
+    if (!list) this.error("Expected a list in {each}", index);
+    if (!key) this.error("Expected a key in {each}", index);
+    const fromBlock = this.source.slice(index);
+    const listIndex = index + Math.max(0, fromBlock.indexOf(list));
+    const keyIndex = index + Math.max(0, fromBlock.indexOf("(") + 1);
     const body = { type: "fragment" as const, children: this.parseSequence("each") };
     return { type: "each", list, listIndex, item, key, keyIndex, body, index };
   }
@@ -267,12 +275,14 @@ class Parser {
     | { type: "else"; raw: string }
     | { type: "interp" } {
     const trimmed = inner.trim();
-    if (trimmed.startsWith("#if")) {
-      const test = trimmed.slice(3).trim();
-      return { type: "if", test, index: index + inner.indexOf(test) + 1 };
+    const ifHead = trimmed.match(/^#?if\b([\s\S]*)$/);
+    if (ifHead && (trimmed.startsWith("if") || trimmed.startsWith("#if"))) {
+      const test = ifHead[1].trim();
+      return { type: "if", test, index: test ? index + inner.indexOf(test) + 1 : index };
     }
-    if (trimmed.startsWith("#each")) {
-      return { type: "each", header: trimmed.slice(5).trim() };
+    const eachHead = trimmed.match(/^#?each\b([\s\S]*)$/);
+    if (eachHead && (trimmed.startsWith("each") || trimmed.startsWith("#each"))) {
+      return { type: "each", header: eachHead[1].trim() };
     }
     if (/^\/if\b/.test(trimmed)) {
       if (!/^\/if\s*$/.test(trimmed)) this.error("Unexpected tokens in {/if}", index);
@@ -282,7 +292,16 @@ class Parser {
       if (!/^\/each\s*$/.test(trimmed)) this.error("Unexpected tokens in {/each}", index);
       return { type: "close", block: "each" };
     }
-    if (trimmed === ":else" || trimmed.startsWith(":else if")) return { type: "else", raw: trimmed };
+    const elseHead = trimmed.match(/^:?else\b([\s\S]*)$/);
+    if (elseHead && (trimmed.startsWith("else") || trimmed.startsWith(":else"))) {
+      const rest = elseHead[1].trim();
+      if (!rest) return { type: "else", raw: "else" };
+      if (/^if\b/.test(rest)) {
+        const test = rest.replace(/^if\b/, "").trim();
+        return { type: "else", raw: test ? `else if ${test}` : "else if" };
+      }
+      this.error("Unexpected {else}", index);
+    }
     if (trimmed.startsWith("#") || trimmed.startsWith("/") || trimmed.startsWith(":")) {
       this.error(`Unknown block {${trimmed}}`, index);
     }
@@ -417,14 +436,18 @@ class Parser {
           value = decodeEntities(this.source.slice(start, this.pos));
         }
       }
-      if (attrName.startsWith("on:")) {
-        const spec = attrName.slice(3);
-        const [eventName, ...modifiers] = spec.split("|");
+      if (attrName.startsWith("@") || attrName.startsWith("on:")) {
+        const at = attrName.startsWith("@");
+        const spec = attrName.slice(at ? 1 : 3);
+        const parts = spec.split(at ? "." : "|").filter((part) => part.length > 0);
+        const eventName = parts[0] ?? "";
+        const modifiers = parts.slice(1).map((modifier) => {
+          const canonical = MODIFIER_NAMES[modifier];
+          if (!canonical) this.error(`Unknown event modifier "${modifier}"`, index);
+          return canonical;
+        });
         if (!eventName) this.error("Expected an event name", index);
-        if (!dynamic || value === null) this.error(`Expected on:${eventName}={handler}`, index);
-        for (const modifier of modifiers) {
-          if (!MODIFIERS.has(modifier)) this.error(`Unknown event modifier "${modifier}"`, index);
-        }
+        if (!dynamic || value === null) this.error(`Expected @${eventName}={handler}`, index);
         events.push({ name: eventName, modifiers, handler: value, index });
       } else {
         attributes.push({ name: attrName, value, dynamic, index });

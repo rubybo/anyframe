@@ -1,18 +1,17 @@
 # AnyFrame
 
-AnyFrame is a small component compiler. A `.frame` file has a script, a template, and optional scoped CSS. The compiler turns the template into DOM updates. State stays explicit: `state()` and `derived()` in the script, read and written with `.get()` and `.set()`.
+AnyFrame is a small component compiler. A `.frame` file has a script, a template, and optional scoped CSS. The compiler turns the template into DOM updates.
 
-In the template, identifiers are wrapped in `read()`, so `{items}` and `{#if items.length === 0}` subscribe to signals. A plain `let` is not reactive.
+`state`, `derived`, `effect`, and `read` are already in scope inside `<script>`. Read and write a signal with `.get()` and `.set()`. In the template, `{name}` reads a signal, so `{items}` and `{if items.length === 0}` stay up to date. A plain `let` is not reactive.
 
 ```html
 <script>
-  import { state } from "anyframe";
   import Item from "./Item.frame";
 
   const items = state([]);
 </script>
 
-{#each items as item (item.id)}
+{each items as item (item.id)}
   <Item item={item} />
 {/each}
 
@@ -21,7 +20,15 @@ In the template, identifiers are wrapped in `read()`, so `{items}` and `{#if ite
 </style>
 ```
 
-Templates can use elements, text, attributes, `{expressions}`, `on:click={handler}`, modifiers such as `on:submit|preventDefault={handler}`, `{#if}` / `{:else}` / `{:else if}` / `{/if}`, and keyed `{#each list as item (key)}`. A capitalized tag is a child component imported from a `.frame` file. Several root nodes become a fragment. Scoped CSS adds a content hash class to every element and rewrites selectors, including `:scope`.
+A template is HTML plus a few blocks:
+
+- `{expr}` prints a value.
+- `@click={handler}` listens. `@submit.prevent={handler}` calls `preventDefault` first. `stop` and `stopImmediate` work the same way.
+- `{if expr}` … `{else}` … `{else if expr}` … `{/if}` chooses a branch.
+- `{each list as item (key)}` … `{/each}` repeats a branch and reuses a row when its key stays the same.
+- A capitalized tag is a child component. Several root nodes are a fragment.
+
+Scoped CSS adds a hash class to every element in the file and rewrites selectors, including `:scope`.
 
 TypeScript in `<script>` is stripped with esbuild. The Vite plugin reloads the page when a `.frame` file changes.
 

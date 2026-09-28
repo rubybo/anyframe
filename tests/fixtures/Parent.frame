@@ -1,8 +1,7 @@
 <script>
-  import { state } from "anyframe";
   import Child from "./Child.frame";
   const label = state("one");
   function next() { label.set("two"); }
 </script>
-<button type="button" on:click={next}>Next</button>
+<button type="button" @click={next}>Next</button>
 <Child label={label} />

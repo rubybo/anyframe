@@ -457,7 +457,9 @@ export function generateModule(options: {
   const view = gen.emit();
   const props = [...gen.propNames].map((name) => `const ${name} = __af.prop(__afProps, ${JSON.stringify(name)});`);
   const cssLine = cls ? `__af.injectCss(${JSON.stringify(`af-style-${cls}`)}, ${JSON.stringify(scoped)});` : "";
-  const imports = [`import { __af } from "anyframe";`, options.script.imports].filter(Boolean).join("\n");
+  const runtime = ["__af", "state", "derived", "effect", "read"].filter((name) => !options.script.bindings.has(name));
+  const runtimeImport = runtime.length ? `import { ${runtime.join(", ")} } from "anyframe";` : "";
+  const imports = [runtimeImport, options.script.imports].filter(Boolean).join("\n");
   return `${imports}
 export default function Component(__afProps = {}) {
   const __afScope = __af.own();

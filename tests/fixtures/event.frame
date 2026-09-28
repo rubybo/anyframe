@@ -1,9 +1,8 @@
 <script>
-  import { state } from "anyframe";
   const text = state("");
   function onSubmit() { text.set("sent"); }
 </script>
-<form on:submit|preventDefault={onSubmit}>
+<form @submit.prevent={onSubmit}>
   <button type="submit">Send</button>
 </form>
 <p>{text}</p>
