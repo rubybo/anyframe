@@ -14,26 +14,29 @@ describe("signals", () => {
     const seen: number[] = [];
     const stop = count.subscribe((value) => seen.push(value));
     stops.push(stop);
-    count.set(1);
-    count.set(1);
-    count.set(2);
+    count(1);
+    count(1);
+    count(2);
     stop();
-    count.set(3);
+    count(3);
     expect(seen).toEqual([1, 2]);
-    expect(count.get()).toBe(3);
+    expect(count()).toBe(3);
+    count.set(4);
+    expect(count.get()).toBe(4);
   });
 
   it("updates derived signals from their sources", () => {
     const width = state(2);
     const height = state(3);
-    const area = derived(() => width.get() * height.get());
-    expect(area.get()).toBe(6);
+    const area = derived(() => width() * height());
+    expect(area()).toBe(6);
     const seen: number[] = [];
     const stop = area.subscribe((value) => seen.push(value));
     stops.push(stop);
-    width.set(4);
-    expect(area.get()).toBe(12);
+    width(4);
+    expect(area()).toBe(12);
     expect(seen).toEqual([12]);
+    expect(() => area(1)).toThrow(/derived/);
     expect(() => area.set(1)).toThrow(/derived/);
   });
 
@@ -41,15 +44,15 @@ describe("signals", () => {
     const count = state(0);
     const log: string[] = [];
     const stop = effect(() => {
-      count.get();
+      count();
       log.push("run");
       return () => log.push("cleanup");
     });
     expect(log).toEqual(["run"]);
-    count.set(1);
+    count(1);
     expect(log).toEqual(["run", "cleanup", "run"]);
     stop();
-    count.set(2);
+    count(2);
     expect(log).toEqual(["run", "cleanup", "run", "cleanup"]);
   });
 
@@ -60,7 +63,7 @@ describe("signals", () => {
       seen = read(count);
     }));
     expect(seen).toBe(1);
-    count.set(5);
+    count(5);
     expect(seen).toBe(5);
     expect(read(7)).toBe(7);
     expect(read("task")).toBe("task");

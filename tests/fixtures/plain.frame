@@ -3,7 +3,7 @@
   const clicks = state(0);
   function inc() {
     count += 1;
-    clicks.set(clicks.get() + 1);
+    clicks(clicks() + 1);
   }
 </script>
 <button type="button" @click={inc}>Add</button>

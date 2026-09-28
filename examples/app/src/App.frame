@@ -10,18 +10,18 @@
   let nextId = 1;
 
   const visible = derived(() => {
-    const list = tasks.get();
-    const mode = filter.get();
+    const list = tasks();
+    const mode = filter();
     if (mode === "open") return list.filter((task) => !task.done);
     if (mode === "done") return list.filter((task) => task.done);
     return list;
   });
 
-  const openCount = derived(() => tasks.get().filter((task) => !task.done).length);
+  const openCount = derived(() => tasks().filter((task) => !task.done).length);
 
   const status = derived(() => {
-    const mode = filter.get();
-    const shown = visible.get();
+    const mode = filter();
+    const shown = visible();
     if (shown.length === 0) {
       if (mode === "open") return "Nothing left open.";
       if (mode === "done") return "Nothing completed yet.";
@@ -34,7 +34,7 @@
     const input = event.target;
     if (!(input instanceof HTMLInputElement)) return;
     input.setCustomValidity("");
-    title.set(input.value);
+    title(input.value);
   }
 
   function addTask(event: Event) {
@@ -51,18 +51,16 @@
     field.setCustomValidity("");
     const id = nextId;
     nextId += 1;
-    tasks.set([...tasks.get(), { id, title: value, done: false }]);
-    title.set("");
+    tasks([...tasks(), { id, title: value, done: false }]);
+    title("");
   }
 
   function setFilter(next: Filter) {
-    filter.set(next);
+    filter(next);
   }
 
   function toggle(id: number) {
-    tasks.set(
-      tasks.get().map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
-    );
+    tasks(tasks().map((task) => (task.id === id ? { ...task, done: !task.done } : task)));
   }
 </script>
 

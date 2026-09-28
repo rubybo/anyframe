@@ -1,6 +1,6 @@
 <script>
   const text = state("");
-  function onSubmit() { text.set("sent"); }
+  function onSubmit() { text("sent"); }
 </script>
 <form @submit.prevent={onSubmit}>
   <button type="submit">Send</button>

@@ -88,7 +88,7 @@ describe("compiler fixtures", () => {
     expect(code).toContain("__af.read(save)");
     expect(code).toContain("import { __af, state, derived, effect, read } from \"anyframe\";");
     const legacy = await compile(
-      `<form on:submit|preventDefault={save}></form>\n<script>\nimport { state } from "anyframe";\nconst ready = state(false);\nfunction save() { ready.set(true); }\n</script>\n`,
+      `<form on:submit|preventDefault={save}></form>\n<script>\nimport { state } from "anyframe";\nconst ready = state(false);\nfunction save() { ready(true); }\n</script>\n`,
       "Legacy.frame",
     );
     expect(legacy).toContain("preventDefault");

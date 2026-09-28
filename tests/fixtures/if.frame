@@ -1,7 +1,7 @@
 <script>
   const show = state(true);
-  function hide() { show.set(false); }
-  function appear() { show.set(true); }
+  function hide() { show(false); }
+  function appear() { show(true); }
 </script>
 {if show}
   <p class="yes">yes</p>

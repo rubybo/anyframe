@@ -1,6 +1,8 @@
 export const SIGNAL: unique symbol = Symbol("anyframe.signal");
 
 export interface Signal<T> {
+  (): T;
+  (value: T): T;
   readonly [SIGNAL]: true;
   get(): T;
   set(value: T): void;
@@ -29,7 +31,21 @@ let owner: Scope | null = null;
 let active: Listener | null = null;
 
 export function isSignal(value: unknown): value is Signal<unknown> {
-  return typeof value === "object" && value !== null && SIGNAL in value;
+  return (typeof value === "function" || (typeof value === "object" && value !== null)) && SIGNAL in value;
+}
+
+function callable<T>(methods: Pick<Signal<T>, "get" | "set" | "subscribe">): Signal<T> {
+  const signal = ((...args: [] | [T]): T => {
+    if (args.length === 0) return methods.get();
+    const next = args[0] as T;
+    methods.set(next);
+    return next;
+  }) as Signal<T>;
+  Object.defineProperty(signal, SIGNAL, { value: true });
+  signal.get = methods.get;
+  signal.set = methods.set;
+  signal.subscribe = methods.subscribe;
+  return signal;
 }
 
 function notify<T>(state: State<T>): void {
@@ -131,8 +147,7 @@ export function state<T>(initial: T): Signal<T> {
     subscribers: new Set(),
   };
 
-  const api: Signal<T> = {
-    [SIGNAL]: true,
+  return callable({
     get() {
       if (active) {
         box.listeners.add(active);
@@ -151,20 +166,17 @@ export function state<T>(initial: T): Signal<T> {
         box.subscribers.delete(listener);
       };
     },
-  };
-
-  return api;
+  });
 }
 
 export function derived<T>(compute: () => T): Signal<T> {
   const current = state<T>(undefined as T);
   effect(() => {
-    current.set(compute());
+    current(compute());
   });
-  return {
-    [SIGNAL]: true,
+  return callable({
     get() {
-      return current.get();
+      return current();
     },
     set() {
       throw new Error("Cannot set a derived signal");
@@ -172,7 +184,7 @@ export function derived<T>(compute: () => T): Signal<T> {
     subscribe(listener) {
       return current.subscribe(listener);
     },
-  };
+  });
 }
 
 type Unwrap<T> = T extends Signal<infer U> ? U : T;
@@ -184,8 +196,7 @@ export function read<T>(value: T): Unwrap<T> {
 }
 
 export function prop<T>(props: Record<string, T>, key: string): Signal<T> {
-  return {
-    [SIGNAL]: true,
+  return callable({
     get() {
       return props[key];
     },
@@ -201,5 +212,5 @@ export function prop<T>(props: Record<string, T>, key: string): Signal<T> {
       ready = true;
       return stop;
     },
-  };
+  });
 }

@@ -2,17 +2,28 @@
 
 AnyFrame is a small component compiler. A `.frame` file has a script, a template, and optional scoped CSS. The compiler turns the template into DOM updates.
 
-`state`, `derived`, `effect`, and `read` are already in scope inside `<script>`. Read and write a signal with `.get()` and `.set()`. In the template, `{name}` reads a signal, so `{items}` and `{if items.length === 0}` stay up to date. A plain `let` is not reactive.
+`state`, `derived`, and `effect` are already in scope inside `<script>`. A signal is a function: `title()` reads it and `title("next")` writes it. In the template, `{title}` reads it for you, so `{items}` and `{if items.length === 0}` stay up to date. A plain `let` is not reactive.
 
 ```html
 <script>
-  import Item from "./Item.frame";
+  const title = state("");
+  const items = state([{ id: 1, label: "Milk" }]);
 
-  const items = state([]);
+  function rename() {
+    title("Grace");
+  }
+
+  function add() {
+    items([...items(), { id: 2, label: title() }]);
+  }
 </script>
 
+<p>{title}</p>
+<button type="button" @click={rename}>Rename</button>
+<button type="button" @click={add}>Add</button>
+
 {each items as item (item.id)}
-  <Item item={item} />
+  <span>{item.label}</span>
 {/each}
 
 <style>

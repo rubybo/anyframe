@@ -4,10 +4,10 @@
     { id: 2, label: "b" },
   ]);
   function dropFirst() {
-    items.set(items.get().filter((item) => item.id !== 1));
+    items(items().filter((item) => item.id !== 1));
   }
   function rename() {
-    items.set(items.get().map((item) => (item.id === 2 ? { ...item, label: "z" } : item)));
+    items(items().map((item) => (item.id === 2 ? { ...item, label: "z" } : item)));
   }
 </script>
 <ul>

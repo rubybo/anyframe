@@ -1,7 +1,7 @@
 <script>
   import Child from "./Child.frame";
   const label = state("one");
-  function next() { label.set("two"); }
+  function next() { label("two"); }
 </script>
 <button type="button" @click={next}>Next</button>
 <Child label={label} />
