@@ -1,0 +1,5 @@
+<style>
+  :scope { display: grid; gap: 8px; }
+  .box { color: rgb(1, 2, 3); }
+</style>
+<div class="box">Hi</div>

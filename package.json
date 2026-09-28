@@ -1,0 +1,26 @@
+{
+  "name": "anyframe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A small component compiler: templates become DOM updates, state stays in explicit signals.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./compiler": "./src/compiler/compile.ts",
+    "./vite": "./src/vite.ts"
+  },
+  "scripts": {
+    "dev": "vite --config examples/app/vite.config.ts --host 0.0.0.0 --port 43123 --strictPort",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "esbuild": "^0.25.9"
+  },
+  "devDependencies": {
+    "happy-dom": "^18.0.1",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.6",
+    "vitest": "^3.2.4"
+  }
+}

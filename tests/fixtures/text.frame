@@ -1,0 +1,7 @@
+<script>
+  import { state } from "anyframe";
+  const name = state("Ada");
+  function rename() { name.set("Grace"); }
+</script>
+<p>Hello {name}!</p>
+<button type="button" on:click={rename}>Rename</button>

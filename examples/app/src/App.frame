@@ -1,0 +1,283 @@
+<script>
+  import { state, derived } from "anyframe";
+  import Item from "./Item.frame";
+
+  type Task = { id: number; title: string; done: boolean };
+  type Filter = "all" | "open" | "done";
+
+  const title = state("");
+  const tasks = state<Task[]>([]);
+  const filter = state<Filter>("all");
+  let nextId = 1;
+
+  const visible = derived(() => {
+    const list = tasks.get();
+    const mode = filter.get();
+    if (mode === "open") return list.filter((task) => !task.done);
+    if (mode === "done") return list.filter((task) => task.done);
+    return list;
+  });
+
+  const openCount = derived(() => tasks.get().filter((task) => !task.done).length);
+
+  const status = derived(() => {
+    const mode = filter.get();
+    const shown = visible.get();
+    if (shown.length === 0) {
+      if (mode === "open") return "Nothing left open.";
+      if (mode === "done") return "Nothing completed yet.";
+      return "No tasks yet. Add the first one.";
+    }
+    return shown.length === 1 ? "1 shown" : `${shown.length} shown`;
+  });
+
+  function onTitle(event: Event) {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    input.setCustomValidity("");
+    title.set(input.value);
+  }
+
+  function addTask(event: Event) {
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const field = form.elements.namedItem("title");
+    if (!(field instanceof HTMLInputElement)) return;
+    const value = field.value.trim();
+    if (!value) {
+      field.setCustomValidity("Enter a task.");
+      field.reportValidity();
+      return;
+    }
+    field.setCustomValidity("");
+    const id = nextId;
+    nextId += 1;
+    tasks.set([...tasks.get(), { id, title: value, done: false }]);
+    title.set("");
+  }
+
+  function setFilter(next: Filter) {
+    filter.set(next);
+  }
+
+  function toggle(id: number) {
+    tasks.set(
+      tasks.get().map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
+    );
+  }
+</script>
+
+<div class="board">
+  <header class="mast">
+    <h1>Tasks</h1>
+    <p class="count">{openCount} open</p>
+  </header>
+
+  <form class="add" method="post" action="#tasks" on:submit|preventDefault={addTask}>
+    <div class="field">
+      <label for="task-title">New task</label>
+      <div class="row">
+        <input
+          id="task-title"
+          name="title"
+          type="text"
+          required
+          autocomplete="off"
+          enterkeyhint="done"
+          placeholder="What needs doing?"
+          value={title}
+          on:input={onTitle}
+        />
+        <button type="submit">Add task</button>
+      </div>
+    </div>
+  </form>
+
+  <fieldset class="filters">
+    <legend>Show</legend>
+    <label class="choice" for="show-all">
+      <input id="show-all" type="radio" name="show" value="all" checked={filter === "all"} on:change={() => setFilter("all")} />
+      All
+    </label>
+    <label class="choice" for="show-open">
+      <input id="show-open" type="radio" name="show" value="open" checked={filter === "open"} on:change={() => setFilter("open")} />
+      Open
+    </label>
+    <label class="choice" for="show-done">
+      <input id="show-done" type="radio" name="show" value="done" checked={filter === "done"} on:change={() => setFilter("done")} />
+      Done
+    </label>
+  </fieldset>
+
+  <p class="sr" aria-live="polite">{status}</p>
+
+  {#if visible.length === 0}
+    <p class="empty" aria-hidden="true">{status}</p>
+  {:else}
+    <ul>
+      {#each visible as task (task.id)}
+        <Item task={task} ontoggle={() => toggle(task.id)} />
+      {/each}
+    </ul>
+  {/if}
+</div>
+
+<style>
+  :scope {
+    box-sizing: border-box;
+  }
+
+  .board {
+    max-width: 36rem;
+    margin-inline: auto;
+    padding-block: 2.5rem;
+    padding-inline: 1.25rem;
+    display: grid;
+    gap: 1.25rem;
+    color: #221e18;
+    color-scheme: light;
+    font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+
+  .count,
+  .field label,
+  legend,
+  button,
+  .choice,
+  .empty,
+  .sr {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .count {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .field label,
+  legend {
+    font-size: 0.95rem;
+  }
+
+  legend {
+    padding: 0;
+    margin-block-end: 0.35rem;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  input[type="text"] {
+    flex: 1 1 12rem;
+    min-inline-size: 0;
+    min-height: 3rem;
+    padding-inline: 0.75rem;
+    border: 1px solid #8a8175;
+    border-radius: 0;
+    background: #fffdf8;
+    color: inherit;
+    font: inherit;
+    font-size: 1rem;
+  }
+
+  input[type="text"]:user-invalid {
+    border-color: #9a3412;
+  }
+
+  input[type="text"]:focus-visible,
+  button:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 3px solid #9a3412;
+    outline-offset: 2px;
+  }
+
+  button[type="submit"] {
+    min-height: 3rem;
+    padding-inline: 1rem;
+    border: 0;
+    background: #9a3412;
+    color: #fffaf5;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+  }
+
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+
+  input[type="radio"] {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    accent-color: #9a3412;
+  }
+
+  .sr {
+    position: absolute;
+    clip-path: inset(50%);
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  .empty {
+    margin: 0;
+    padding: 1.25rem;
+    border: 1px dashed #8a8175;
+    color: #3f3a33;
+    line-height: 1.5;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  @media (pointer: coarse) {
+    input[type="text"],
+    button[type="submit"] {
+      min-height: 3.25rem;
+    }
+  }
+</style>

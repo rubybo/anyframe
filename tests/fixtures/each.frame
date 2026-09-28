@@ -1,0 +1,20 @@
+<script>
+  import { state } from "anyframe";
+  const items = state([
+    { id: 1, label: "a" },
+    { id: 2, label: "b" },
+  ]);
+  function dropFirst() {
+    items.set(items.get().filter((item) => item.id !== 1));
+  }
+  function rename() {
+    items.set(items.get().map((item) => (item.id === 2 ? { ...item, label: "z" } : item)));
+  }
+</script>
+<ul>
+  {#each items as item (item.id)}
+    <li data-id={item.id}>{item.label}</li>
+  {/each}
+</ul>
+<button type="button" on:click={dropFirst}>Drop</button>
+<button type="button" on:click={rename}>Rename</button>

@@ -1,0 +1,49 @@
+<li class={task.done ? "done" : "open"}>
+  <input
+    id={"task-" + task.id}
+    name={"task-" + task.id}
+    type="checkbox"
+    checked={task.done}
+    on:change={() => ontoggle()}
+  />
+  <label for={"task-" + task.id}>{task.title}</label>
+</li>
+
+<style>
+  :scope {
+    box-sizing: border-box;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3rem;
+    border-block-end: 1px solid #d9d0c2;
+    font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  }
+
+  input {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    accent-color: #9a3412;
+    flex: none;
+  }
+
+  label {
+    flex: 1;
+    padding-block: 0.75rem;
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+
+  input:focus-visible {
+    outline: 3px solid #9a3412;
+    outline-offset: 2px;
+  }
+
+  .done label {
+    color: #3f3a33;
+    text-decoration: line-through;
+  }
+</style>
